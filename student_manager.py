@@ -1,5 +1,6 @@
 import json
 import os
+import sys
 import tempfile
 import warnings
 from pathlib import Path
@@ -12,7 +13,17 @@ class StudentManager:
     """Manage students and store them in a JSON file."""
 
     def __init__(self) -> None:
-        self._data_file = Path(__file__).with_name("students.json")
+        if getattr(sys, "frozen", False):
+            app_data = os.environ.get("LOCALAPPDATA")
+            if not app_data:
+                raise RuntimeError(
+                    "LOCALAPPDATA is not set; student data cannot be stored."
+                )
+            data_directory = Path(app_data) / "StudentManagementSystem"
+            self._data_file = data_directory / "students.json"
+        else:
+            self._data_file = Path(__file__).with_name("students.json")
+
         self._students: List[Student] = []
         self._load_students()
 
@@ -84,6 +95,7 @@ class StudentManager:
         temporary_path: Optional[Path] = None
 
         try:
+            self._data_file.parent.mkdir(parents=True, exist_ok=True)
             with tempfile.NamedTemporaryFile(
                 mode="w",
                 encoding="utf-8",
